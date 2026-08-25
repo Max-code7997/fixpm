@@ -1,0 +1,38 @@
+{
+    "version": "0.2.1",
+    "description": "Interactive fixer for broken npm / npx / pnpm / yarn commands.",
+    "homepage": "https://github.com/Max-code7997/fixpm",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/Max-code7997/fixpm/releases/download/v0.2.1/fixpm-windows-x64.exe",
+            "hash": "35c943f430c71a3491720686dfbbf7afed1e28ff033f979c613cf8a4e45a7b0a"
+        }
+    },
+    "bin": [
+        [
+            "fixpm-windows-x64.exe",
+            "fixpm"
+        ]
+    ],
+    "checkver": {
+        "github": "https://github.com/Max-code7997/fixpm"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/Max-code7997/fixpm/releases/download/v$version/fixpm-windows-x64.exe",
+                "hash": {
+                    "url": "https://github.com/Max-code7997/fixpm/releases/download/v$version/fixpm-windows-x64.exe.sha256",
+                    "mode": "extract"
+                }
+            }
+        },
+        "bin": [
+            [
+                "fixpm-windows-x64.exe",
+                "fixpm"
+            ]
+        ]
+    }
+}
