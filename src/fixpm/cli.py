@@ -4,7 +4,7 @@ Modes:
   fixpm                       fix $FIXPM_LAST_COMMAND (set by shell hook)
   fixpm <command words...>    fix an explicit command line
   fixpm --dry-run <cmd>       print fixes without prompting/executing
-  fixpm --init zsh|bash       emit the hook script for eval "$(...)"
+  fixpm --init zsh|bash|powershell   emit the hook script
 """
 
 from __future__ import annotations
@@ -31,7 +31,20 @@ app = typer.Typer(
 ENV_COMMAND = "FIXPM_LAST_COMMAND"
 ENV_EXIT_CODE = "FIXPM_LAST_EXIT_CODE"
 
-_HOOKS = {"bash": "fixpm.bash", "zsh": "fixpm.zsh"}
+_HOOKS = {"bash": "fixpm.bash", "zsh": "fixpm.zsh", "powershell": "fixpm.ps1"}
+
+# Per-shell rc file and the exact line users should add to it.
+_RC_HINTS = {
+    "bash": ("~/.bashrc", 'eval "$(fixpm --init bash)"'),
+    "zsh": ("~/.zshrc", 'eval "$(fixpm --init zsh)"'),
+    # PowerShell cannot eval multi-line output from a subexpression, so the
+    # hook is written to a temp file and dot-sourced from disk.
+    "powershell": (
+        "$PROFILE",
+        'fixpm --init powershell > $env:TEMP\\fixpm-hook.ps1; '
+        '. "$env:TEMP\\fixpm-hook.ps1"',
+    ),
+}
 
 
 def _version_callback(value: bool) -> None:
@@ -59,12 +72,17 @@ def main(
     ),
     init_shell: str | None = typer.Option(
         None, "--init",
-        help='Emit a hook script for the given shell ("bash" or "zsh"). '
-             'Use inside eval: eval "$(fixpm --init zsh)".',
+        help='Emit a hook script for the given shell ("bash", "zsh" or '
+             '"powershell"). Use inside eval: eval "$(fixpm --init zsh)".',
     ),
 ) -> None:
     if init_shell is not None:
         _emit_hook(init_shell)
+        return
+    if command == ["doctor"]:
+        # The variadic argument would otherwise swallow the subcommand
+        # (same click quirk that forced --init to be a flag).
+        doctor()
         return
     if ctx.invoked_subcommand is not None:
         return
@@ -109,6 +127,83 @@ def main(
     raise typer.Exit(code=subprocess.run(choice.command, shell=True).returncode)
 
 
+@app.command()
+def doctor() -> None:
+    """Show which fixpm binary, rule set and hooks are active.
+
+    Triage for "my fixpm behaves like an old version" — usually a stale
+    copy shadowing the real one on PATH.
+    """
+    import hashlib
+    import shutil
+    from datetime import datetime
+    from pathlib import Path
+
+    exe = shutil.which("fixpm")
+    typer.echo(f"command resolved : {exe or 'NOT FOUND ON PATH'}")
+    typer.echo(f"version          : {__version__}")
+    typer.echo(f"package dir      : {Path(__file__).resolve().parent}")
+
+    from . import packages as _pkg
+    blob = "\n".join(_pkg.POPULAR_PACKAGES).encode("utf-8")
+    fingerprint = hashlib.sha1(blob).hexdigest()[:8]
+    rules_mtime = datetime.fromtimestamp(
+        Path(_pkg.__file__).stat().st_mtime
+    ).strftime("%Y-%m-%d %H:%M")
+    typer.echo(
+        f"rule set         : corpus={len(_pkg.POPULAR_PACKAGES)} pkgs, "
+        f"curated={len(_pkg.POPULAR_FALLBACK)} typos, "
+        f"fingerprint={fingerprint}, mtime={rules_mtime}"
+    )
+
+    home = Path.home()
+    hook_checks = [
+        ("bash", home / ".bashrc", "fixpm --init bash"),
+        ("zsh", home / ".zshrc", "fixpm --init zsh"),
+    ]
+    for docs in (home / "Documents", home / "OneDrive" / "Documents"):
+        for sub in ("WindowsPowerShell", "PowerShell"):
+            hook_checks.append((
+                "powershell",
+                docs / sub / "Microsoft.PowerShell_profile.ps1",
+                "fixpm --init powershell",
+            ))
+    seen: set[Path] = set()
+    for shell, path, needle in hook_checks:
+        if path in seen:
+            continue
+        seen.add(path)
+        installed = False
+        if path.exists():
+            installed = needle in path.read_text(encoding="utf-8", errors="ignore")
+        state = "installed" if installed else "not installed"
+        typer.echo(f"hook {shell:<11}: {state}  ({path})")
+    cache = Path(os.environ.get("TEMP", str(home / ".tmp"))) / "fixpm-hook.ps1"
+    typer.echo(f"hook ps cache    : "
+               f"{'present' if cache.exists() else 'absent'}  ({cache})")
+
+    exe_resolved = Path(exe).resolve() if exe else None
+    shadows: list[str] = []
+    seen_dirs: set[Path] = set()
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry:
+            continue
+        d = Path(entry)
+        if d in seen_dirs:
+            continue
+        seen_dirs.add(d)
+        for name in ("fixpm.exe", "fixpm.cmd", "fixpm"):
+            candidate = d / name
+            if candidate.exists():
+                resolved = candidate.resolve()
+                if exe_resolved is None or resolved != exe_resolved:
+                    shadows.append(str(resolved))
+    if shadows:
+        typer.echo("other copies     : " + ", ".join(shadows))
+        typer.echo("                   PATH order decides which one runs; "
+                   "remove or rebuild stale copies.")
+
+
 def _emit_hook(shell: str) -> None:
     filename = _HOOKS.get(shell)
     if filename is None:
@@ -123,9 +218,12 @@ def _emit_hook(shell: str) -> None:
     # and native Linux do not — so the raw byte stream must be LF.
     sys.stdout.buffer.write(script.replace("\r\n", "\n").encode("utf-8"))
     sys.stdout.buffer.flush()
-    rc_file = "~/.zshrc" if shell == "zsh" else "~/.bashrc"
-    typer.secho(f"# Add this line to your {rc_file}: "
-                f'eval "$(fixpm --init {shell})"', dim=True, err=True)
+    if sys.stdout.isatty():
+        # Interactive use: remind the user how to enable it. When the output
+        # is captured by eval/$(...) the hint would be startup noise.
+        rc_file, enable_line = _RC_HINTS[shell]
+        typer.secho(f"# Add this line to your {rc_file}: {enable_line}",
+                    dim=True, err=True)
 
 
 if __name__ == "__main__":

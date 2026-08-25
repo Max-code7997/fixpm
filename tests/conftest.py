@@ -25,7 +25,11 @@ def fake_registry() -> FakeRegistry:
     return FakeRegistry(
         {
             "loadash": "lodash",
+            "loadads": "lodash",
             "creat-react-app": "create-react-app",
+            "cerate-react-app": "create-react-app",
+            "creaet-react-app": "create-react-app",
+            "vite-templat": "create-vite",
             "lodass": "lodash",
         }
     )

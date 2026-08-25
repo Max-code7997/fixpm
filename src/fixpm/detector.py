@@ -118,11 +118,24 @@ def _analyze_subcommand(spec: ManagerSpec, tokens: list[str],
         return issues
 
     # Chain commands like `yarn global add <pkg>` — absorb the sub-verb.
+    # The sub-verb slot gets typo tolerance too: `yarn global ad x` must
+    # still resolve the chain (and report the typo) instead of falling apart.
     extra = 0
-    if canon == "global" and spec.sub_verbs and \
-            i + 1 < len(rest) and rest[i + 1] in spec.sub_verbs:
-        extra = 1
-        canon = f"global {rest[i + 1]}"
+    if canon == "global" and spec.sub_verbs and i + 1 < len(rest):
+        nxt = rest[i + 1]
+        if nxt in spec.sub_verbs:
+            extra = 1
+            canon = f"global {nxt}"
+        else:
+            near = _nearest(nxt, spec.sub_verbs, top=1, min_score=0.55)
+            if near:
+                issues.append(Issue(
+                    IssueKind.SUBCOMMAND_TYPO, nxt, start + i + 1,
+                    f"'{nxt}' is not a {spec.name} subcommand of 'global'",
+                    tuple(near),
+                ))
+                extra = 1
+                canon = f"global {near[0]}"
     effective = canon.rsplit(" ", 1)[-1]
     allowed = spec.flags.get(effective, ())
 

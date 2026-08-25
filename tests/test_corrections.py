@@ -13,6 +13,7 @@ CASES: list[tuple[str, str, IssueKind | None]] = [
     ("npm instal", "npm install", None),
     ("npm innit -y", "npm init -y", None),
     ("npm i loadash", "npm i lodash", IssueKind.PACKAGE_TYPO),
+    ("npm i loadads", "npm i lodash", IssueKind.PACKAGE_TYPO),
     ("npm install express save-dev",
      "npm install express --save-dev", IssueKind.MISSING_DASHES),
     ("npm install --svae express",
@@ -25,9 +26,17 @@ CASES: list[tuple[str, str, IssueKind | None]] = [
     ("pnpm ad left-pad", "pnpm add left-pad", IssueKind.SUBCOMMAND_TYPO),
     ("yarn isntall", "yarn install", None),
     ("yarn globla add vite", "yarn global add vite", None),
+    ("yarn global ad typescript",
+     "yarn global add typescript", IssueKind.SUBCOMMAND_TYPO),
     # --- npx (package-first) -----------------------------------------------
     ("npx creat-react-app web",
      "npx create-react-app web", IssueKind.PACKAGE_TYPO),
+    ("npx cerate-react-app my-app",
+     "npx create-react-app my-app", IssueKind.PACKAGE_TYPO),
+    ("npx creaet-react-app my-app",
+     "npx create-react-app my-app", IssueKind.PACKAGE_TYPO),
+    ("npx vite-templat my-app",
+     "npx create-vite my-app", IssueKind.PACKAGE_TYPO),
 ]
 
 

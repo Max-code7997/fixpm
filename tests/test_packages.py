@@ -23,7 +23,9 @@ class StubRegistry(NpmRegistry):
         if "/-/v1/search" in url:
             return {"objects": [{"package": {"name": n}} for n in self.search_names]}
         name = url.rsplit("/", 1)[-1]
-        return {"downloads": self.downloads.get(name, 0)}
+        if name not in self.downloads:
+            return None  # mirror the real client: unknown -> None
+        return {"downloads": self.downloads[name]}
 
 
 class OfflineRegistry(NpmRegistry):
@@ -60,6 +62,35 @@ def test_corpus_catches_typos_the_search_api_misses() -> None:
     stub = StubRegistry(search_names=["loadahs-core"], downloads={})
     names = [s.name for s in stub.suggest("loadahs")]
     assert "lodash" in names
+
+
+def test_corpus_recalls_scaffolders_the_search_api_misses() -> None:
+    # Regression: real npm search for "cerate-react-app" returns unrelated
+    # packages (babel-preset-react-app, ...) and never the correct one; the
+    # corpus must supply create-react-app and rank it first.
+    stub = StubRegistry(
+        search_names=["react-redux", "babel-preset-react-app",
+                      "eslint-config-react-app"],
+        downloads={"babel-preset-react-app": 900_000,
+                   "eslint-config-react-app": 700_000},
+    )
+    assert stub.suggest("cerate-react-app")[0].name == "create-react-app"
+
+
+def test_distance_beats_popularity_when_gap_is_large() -> None:
+    # Regression guarding the scoring weights: with all three candidates in
+    # the pool, the near-exact match (sim 0.94) must win even against
+    # far more popular alternatives (sim 0.59 / 0.48).
+    stub = StubRegistry(
+        search_names=["babel-preset-react-app", "eslint-config-react-app",
+                      "create-react-app"],
+        downloads={"babel-preset-react-app": 5_000_000,
+                   "eslint-config-react-app": 5_000_000,
+                   "create-react-app": 300_000},
+    )
+    top = stub.suggest("cerate-react-app")
+    assert top[0].name == "create-react-app"
+    assert top[0].score >= 0.85
 
 
 def test_offline_falls_back_to_curated_map() -> None:

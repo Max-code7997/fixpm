@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fixpm"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Interactive fixer for broken npm / npx / pnpm / yarn commands."
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -30,11 +30,22 @@ dependencies = [
     "questionary>=2.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/Max-code7997/fixpm"
+Repository = "https://github.com/Max-code7997/fixpm"
+Issues = "https://github.com/Max-code7997/fixpm/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [project.scripts]
 fixpm = "fixpm.cli:app"
+
+[tool.hatch.version]
+path = "src/fixpm/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["docs", "dist"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/fixpm"]

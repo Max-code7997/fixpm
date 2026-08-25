@@ -6,6 +6,8 @@
 
 You typed `npm isntall react`. Your terminal yelled at you. `fixpm` knows what you meant — pick the fix with arrow keys, press Enter, done.
 
+![fixpm demo](docs/assets/demo.gif)
+
 ## Why
 
 Package-manager CLIs fail in very predictable ways: a mistyped subcommand (`isntall`), a missing flag prefix (`save-dev` instead of `--save-dev`), or a mistyped package name (`loadash`). Generic "did you mean" tools don't understand that `add` is valid for `yarn` but means `install` on `npm`, or that `--frozen-lockfile` belongs to `pnpm install`.
@@ -28,7 +30,7 @@ pipx install fixpm      # recommended
 pip install --user fixpm
 ```
 
-> Note: verify the `fixpm` name is free on PyPI before your first release; if taken, rename the distribution in `pyproject.toml` (`name = ...`) — the console command can stay `fixpm`.
+Published on PyPI as [`fixpm`](https://pypi.org/project/fixpm/).
 
 ## Setup
 
@@ -42,6 +44,12 @@ or bash:
 
 ```bash
 echo 'eval "$(fixpm --init bash)"' >> ~/.bashrc
+```
+
+or PowerShell (Windows):
+
+```powershell
+Add-Content $PROFILE 'fixpm --init powershell > $env:TEMP\fixpm-hook.ps1; . "$env:TEMP\fixpm-hook.ps1"'
 ```
 
 No hook? Works manually too:
@@ -69,8 +77,7 @@ $ fixpm
 added 42 packages in 3s
 ```
 
-<!-- TODO(demo): replace with an asciinema recording / GIF once published.
-![demo](docs/assets/demo.gif) -->
+A real-terminal recording of the PowerShell hook is embedded at the top of this README.
 
 ### What it catches
 
@@ -88,7 +95,7 @@ added 42 packages in 3s
 
 1. The shell hook exports `$FIXPM_LAST_COMMAND` / `$FIXPM_LAST_EXIT_CODE`; `fixpm` reads them (or takes the command as arguments).
 2. `detector.py` tokenizes the line, finds the manager binary, and classifies each issue against that manager's rule table.
-3. `corrector.py` turns issues into concrete commands; package typos go through `packages.py`, which queries the npm registry search API and ranks by `0.62 × edit-distance similarity + 0.38 × log(weekly downloads)` (clamped). Network failures degrade gracefully to a small curated typo map — the tool never crashes offline.
+3. `corrector.py` turns issues into concrete commands; package typos go through `packages.py`, which queries the npm registry search API and ranks by `0.8 × edit-distance similarity + 0.2 × log(weekly downloads)` (clamped). Network failures degrade gracefully to a local corpus of popular packages plus a curated typo map — the tool never crashes offline.
 
 ## Troubleshooting
 
@@ -102,12 +109,20 @@ added 42 packages in 3s
 2. Make sure `fixpm` is actually on PATH *in that shell* (`command -v fixpm`). `pip install --user` puts it in Python's `Scripts` directory, which is often not on PATH — prefer `pipx`, or add the directory manually.
 3. Still stuck? Re-run the failing command with `FIXPM_DEBUG=1` exported — the hook then shows why its probe failed instead of swallowing errors.
 
+**Suspect you're running a stale copy?** (multiple installs can shadow each other on PATH) — run:
+
+```bash
+fixpm doctor
+```
+
+It prints the resolved binary, version, rule-set fingerprint and per-shell hook status, and flags any other `fixpm` copies visible on PATH.
+
 ## Contributing
 
 Contributions welcome — especially **rule tables** for pnpm/yarn coverage.
 
 ```bash
-git clone https://github.com/YOUR_GH_USER/fixpm && cd fixpm
+git clone https://github.com/Max-code7997/fixpm && cd fixpm
 pip install -e ".[dev]"
 ruff check . && pytest
 ```
@@ -141,7 +156,8 @@ See [CONTRIBUTING notes above](#contributing); open an issue first for new packa
 ## Roadmap
 
 - [ ] Deeper pnpm / yarn (Berry) flag coverage
-- [ ] fish & PowerShell hooks
+- [x] PowerShell hook (`--init powershell`)
+- [ ] fish hook
 - [ ] Validate `npm run <script>` against local `package.json`
 - [ ] On-disk registry cache with TTL
 - [ ] `fixpm --explain` (why this suggestion)

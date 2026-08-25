@@ -24,6 +24,7 @@ USER_AGENT = f"fixpm/{__version__} (https://github.com/fixpm/fixpm)"
 # Curated high-signal typos so the tool stays useful fully offline.
 POPULAR_FALLBACK: dict[str, str] = {
     "loadash": "lodash", "lodass": "lodash", "lodahs": "lodash",
+    "loadads": "lodash", "lodsh": "lodash",
     "expresss": "express", "exprses": "express", "epxress": "express",
     "reactt": "react", "reat": "react", "raect": "react",
     "vuee": "vue", "vu": "vue",
@@ -40,6 +41,7 @@ POPULAR_FALLBACK: dict[str, str] = {
     "tailwindcsss": "tailwindcss",
     "graphl": "graphql",
     "prettie": "prettier",
+    "vite-templat": "create-vite",
 }
 
 # Local corpus of popular package names. The npm search API has poor recall
@@ -47,9 +49,13 @@ POPULAR_FALLBACK: dict[str, str] = {
 # local pool gives transposition-style typos something to fuzzy-match against,
 # fully offline. Contributors: append well-known names freely.
 POPULAR_PACKAGES: tuple[str, ...] = (
-    "react", "react-dom", "react-router", "vue", "vue-router", "pinia",
+    "react", "react-dom", "react-router", "react-scripts", "vue",
+    "vue-router", "pinia",
+    "create-react-app", "create-next-app", "create-vite", "create-vue",
+    "create-svelte", "create-docusaurus",
     "angular", "svelte", "next", "nuxt", "astro", "remix", "gatsby",
-    "express", "koa", "fastify", "hapi", "nest", "socket.io", "ws",
+    "express", "koa", "fastify", "hapi", "nest", "nest-cli", "vue-cli",
+    "socket.io", "ws",
     "lodash", "underscore", "ramda", "axios", "superagent", "ky", "got",
     "moment", "dayjs", "date-fns", "luxon",
     "typescript", "eslint", "prettier", "biome", "jest", "vitest", "mocha",
@@ -102,7 +108,12 @@ def format_downloads(n: int | None) -> str:
 
 
 class NpmRegistry:
-    """Search-backed suggester. Score = 0.62 * similarity + 0.38 * popularity."""
+    """Search-backed suggester.
+
+    Score = 0.8 * similarity + 0.2 * popularity. Similarity dominates so a
+    near-exact match can never be outranked by a popular but distant name;
+    popularity only breaks ties between comparable spellings.
+    """
 
     def __init__(self, timeout: float = 2.5):
         self.timeout = timeout
@@ -197,7 +208,7 @@ class NpmRegistry:
             else:
                 dl = 0
                 pop = CORPUS_POP_PRIOR if from_corpus else 0.0
-            suggestion = Suggestion(cand, dl, round(0.62 * sim + 0.38 * pop, 3))
+            suggestion = Suggestion(cand, dl, round(0.8 * sim + 0.2 * pop, 3))
             if suggestion.score >= 0.4:
                 scored.append(suggestion)
         scored.sort(key=lambda s: (-s.score, s.name))
