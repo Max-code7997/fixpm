@@ -24,13 +24,35 @@ Package-manager CLIs fail in very predictable ways: a mistyped subcommand (`isnt
 
 ## Install
 
+**Recommended — from PyPI (all platforms):**
+
 ```bash
-pipx install fixpm      # recommended
+pipx install fixpm          # isolated CLI install
 # or
 pip install --user fixpm
 ```
 
-Published on PyPI as [`fixpm`](https://pypi.org/project/fixpm/).
+**Standalone binaries (no Python needed):**
+
+| Platform | One-line install |
+| --- | --- |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/Max-code7997/fixpm/main/scripts/install.sh \| sh` |
+| Windows (PowerShell) | `irm https://raw.githubusercontent.com/Max-code7997/fixpm/main/scripts/install.ps1 \| iex` |
+
+Or download the single-file executable + sha256 directly from
+[GitHub Releases](https://github.com/Max-code7997/fixpm/releases/latest).
+
+**Package managers:**
+
+```bash
+# Homebrew (macOS / Linux)
+brew tap Max-code7997/fixpm https://github.com/Max-code7997/homebrew-fixpm
+brew install fixpm
+
+# Scoop (Windows)
+scoop bucket add fixpm https://github.com/Max-code7997/fixpm
+scoop install fixpm
+```
 
 ## Setup
 
