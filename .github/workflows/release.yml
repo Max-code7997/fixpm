@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: fixpm-windows-x64.exe
+          - os: ubuntu-latest
+            artifact: fixpm-linux-x64
+          - os: macos-latest
+            artifact: fixpm-macos-arm64
+          - os: macos-13
+            artifact: fixpm-macos-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install . pyinstaller
+
+      - name: Build single-file executable
+        run: pyinstaller --onefile --name fixpm --paths src src/fixpm/__main__.py
+
+      - name: Rename artifact
+        shell: bash
+        run: |
+          cd dist
+          if [ -f fixpm.exe ]; then mv fixpm.exe "${{ matrix.artifact }}"; fi
+          if [ -f fixpm ] && [ ! -f "${{ matrix.artifact }}" ]; then mv fixpm "${{ matrix.artifact }}"; fi
+          ls -la
+
+      - name: Generate sha256 checksum
+        shell: bash
+        run: |
+          cd dist
+          sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
+          cat "${{ matrix.artifact }}.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
