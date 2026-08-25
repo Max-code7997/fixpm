@@ -19,8 +19,8 @@ jobs:
             artifact: fixpm-linux-x64
           - os: macos-latest
             artifact: fixpm-macos-arm64
-          - os: macos-13
-            artifact: fixpm-macos-x64
+    # note: macos-13 (intel) matrix entry removed — the runner label is
+    # effectively retired and queued forever; arm64 covers modern Macs.
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
