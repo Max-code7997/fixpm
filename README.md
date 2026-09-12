@@ -8,6 +8,14 @@ You typed `npm isntall react`. Your terminal yelled at you. `fixpm` knows what y
 
 ![fixpm demo](docs/assets/demo.gif)
 
+## Tested on
+
+Manually verified end-to-end (hook install + detection + interactive fix) on:
+
+- **Windows PowerShell** (native)
+- **WSL2** (Ubuntu, bash hook)
+- **Git Bash** on Windows (bash hook)
+
 ## Why
 
 Package-manager CLIs fail in very predictable ways: a mistyped subcommand (`isntall`), a missing flag prefix (`save-dev` instead of `--save-dev`), or a mistyped package name (`loadash`). Generic "did you mean" tools don't understand that `add` is valid for `yarn` but means `install` on `npm`, or that `--frozen-lockfile` belongs to `pnpm install`.
