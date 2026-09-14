@@ -1,11 +1,39 @@
-"""Arrow-key interactive selection (questionary / prompt_toolkit)."""
+"""Arrow-key interactive selection (questionary / prompt_toolkit), with a
+plain-text numbered-menu fallback for terminals prompt_toolkit can't drive
+(e.g. some CI runners, IDE-embedded terminals, or a TERM mismatch on
+Windows that trips prompt_toolkit's console-buffer detection)."""
 
 from __future__ import annotations
 
+import typer
 import questionary
 from questionary import Choice
 
 from .rules.base import KIND_LABEL, Correction
+
+
+def _choose_plain(corrections: list[Correction]) -> Correction | None:
+    """Numbered-menu fallback: no cursor movement, just type a number."""
+    typer.echo("Apply a fix:")
+    for i, c in enumerate(corrections, start=1):
+        typer.echo(f"  {i}) {c.command}   · {KIND_LABEL[c.kind]} · {int(c.score * 100)}%")
+    skip_index = len(corrections) + 1
+    typer.echo(f"  {skip_index}) Skip — do nothing")
+
+    while True:
+        try:
+            raw = input(f"Enter a number [1-{skip_index}]: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            return None
+        if not raw.isdigit():
+            typer.echo("Please enter a number.")
+            continue
+        choice_num = int(raw)
+        if choice_num == skip_index:
+            return None
+        if 1 <= choice_num <= len(corrections):
+            return corrections[choice_num - 1]
+        typer.echo(f"Please enter a number between 1 and {skip_index}.")
 
 
 def choose(corrections: list[Correction]) -> Correction | None:
@@ -26,3 +54,8 @@ def choose(corrections: list[Correction]) -> Correction | None:
         ).ask()
     except (KeyboardInterrupt, EOFError):
         return None
+    except Exception:
+        # prompt_toolkit couldn't drive this terminal (e.g.
+        # NoConsoleScreenBufferError on Windows when TERM claims xterm
+        # but there's no real console buffer). Degrade instead of crashing.
+        return _choose_plain(corrections)
