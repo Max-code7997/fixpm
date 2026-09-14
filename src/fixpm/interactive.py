@@ -13,12 +13,19 @@ from .rules.base import KIND_LABEL, Correction
 
 
 def _choose_plain(corrections: list[Correction]) -> Correction | None:
-    """Numbered-menu fallback: no cursor movement, just type a number."""
+    """Numbered-menu fallback: no cursor movement, just type a number.
+
+    Kept ASCII-only on purpose — this path exists specifically for terminals
+    that couldn't handle prompt_toolkit's rendering, and non-ASCII
+    separators (the middle dot / em dash used in the rich menu) are exactly
+    the kind of thing that turns into mojibake under a non-UTF-8 Windows
+    console code page (e.g. cp936).
+    """
     typer.echo("Apply a fix:")
     for i, c in enumerate(corrections, start=1):
-        typer.echo(f"  {i}) {c.command}   · {KIND_LABEL[c.kind]} · {int(c.score * 100)}%")
+        typer.echo(f"  {i}) {c.command}   - {KIND_LABEL[c.kind]} - {int(c.score * 100)}%")
     skip_index = len(corrections) + 1
-    typer.echo(f"  {skip_index}) Skip — do nothing")
+    typer.echo(f"  {skip_index}) Skip - do nothing")
 
     while True:
         try:
