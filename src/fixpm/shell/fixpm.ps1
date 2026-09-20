@@ -1,7 +1,14 @@
 # fixpm PowerShell hook
-# Enable with:  . (fixpm --init powershell)
-# Add that line to your $PROFILE (e.g.
-#   Documents\PowerShell\Microsoft.PowerShell_profile.ps1)
+#
+# Enable by adding this line to your $PROFILE (e.g.
+#   Documents\PowerShell\Microsoft.PowerShell_profile.ps1):
+#
+#   fixpm --init powershell > $env:TEMP\fixpm-hook.ps1; . "$env:TEMP\fixpm-hook.ps1"
+#
+# Do NOT use `. (fixpm --init powershell)`. PowerShell's dot-source operator
+# treats the string it is handed as a *file path*, not as script text, so that
+# form throws "is not recognized as the name of a cmdlet" at every shell
+# startup and installs nothing.
 
 if (-not $global:__FixpmLoaded) {
     $global:__FixpmLoaded = $true

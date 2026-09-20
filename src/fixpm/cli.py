@@ -180,10 +180,17 @@ def doctor() -> None:
         f"fingerprint={fingerprint}, mtime={rules_mtime}"
     )
 
+    # A hook line only helps if the shell can actually execute it. Matching the
+    # expected text is not enough: `. (fixpm --init powershell)` reads like it
+    # should work, but PowerShell's dot-source operator takes the produced
+    # string as a *file path*, so that line errors on every startup and
+    # installs nothing. A plain substring check called it "installed" anyway.
+    broken_powershell = ". (fixpm --init powershell)"
+
     home = Path.home()
-    hook_checks = [
-        ("bash", home / ".bashrc", "fixpm --init bash"),
-        ("zsh", home / ".zshrc", "fixpm --init zsh"),
+    hook_checks: list[tuple[str, Path, str, str | None]] = [
+        ("bash", home / ".bashrc", "fixpm --init bash", None),
+        ("zsh", home / ".zshrc", "fixpm --init zsh", None),
     ]
     for docs in (home / "Documents", home / "OneDrive" / "Documents"):
         for sub in ("WindowsPowerShell", "PowerShell"):
@@ -191,16 +198,25 @@ def doctor() -> None:
                 "powershell",
                 docs / sub / "Microsoft.PowerShell_profile.ps1",
                 "fixpm --init powershell",
+                broken_powershell,
             ))
     seen: set[Path] = set()
-    for shell, path, needle in hook_checks:
+    for shell, path, needle, broken in hook_checks:
         if path in seen:
             continue
         seen.add(path)
-        installed = False
+        found = False
+        is_broken = False
         if path.exists():
-            installed = needle in path.read_text(encoding="utf-8", errors="ignore")
-        state = "installed" if installed else "not installed"
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            found = needle in text
+            is_broken = broken is not None and broken in text
+        if is_broken:
+            state = "BROKEN -- line cannot work, see README"
+        elif found:
+            state = "installed"
+        else:
+            state = "not installed"
         typer.echo(f"hook {shell:<11}: {state}  ({path})")
     cache = Path(os.environ.get("TEMP", str(home / ".tmp"))) / "fixpm-hook.ps1"
     typer.echo(f"hook ps cache    : "
