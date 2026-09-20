@@ -6,6 +6,17 @@
 if (-not $global:__FixpmLoaded) {
     $global:__FixpmLoaded = $true
 
+    # Run the typo probe. Prefers the compiled fixpm-probe: this sits on the
+    # prompt path, where the Python CLI's interpreter start-up is directly felt
+    # as a pause after every failed npm command. The --deadline budget means a
+    # slow npm registry can never hold the prompt hostage.
+    # Resolved once at load time rather than on every prompt.
+    $global:__FixpmProbe = if (Get-Command fixpm-probe -ErrorAction SilentlyContinue) {
+        { param([string]$c) & fixpm-probe --deadline 400ms --dry-run $c }
+    } else {
+        { param([string]$c) & fixpm --dry-run $c }
+    }
+
     function __Fixpm-Hook {
         if ($global:__FixpmBusy) { return }
         $h = Get-History -Count 1
@@ -28,7 +39,7 @@ if (-not $global:__FixpmLoaded) {
 
             # Run the probe without clobbering $LASTEXITCODE for the user.
             $prev = $LASTEXITCODE
-            $out = & fixpm --dry-run $cmd 2>$null
+            $out = & $global:__FixpmProbe $cmd 2>$null
             $probeRc = $LASTEXITCODE
             $global:LASTEXITCODE = $prev
             if ($probeRc -eq 0 -and $out) {

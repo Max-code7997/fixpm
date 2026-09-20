@@ -11,3 +11,7 @@ venv/
 htmlcov/
 .idea/
 .vscode/
+
+# Go probe build output
+go/fixpm-probe
+go/fixpm-probe.exe

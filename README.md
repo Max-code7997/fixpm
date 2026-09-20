@@ -127,6 +127,41 @@ A real-terminal recording of the PowerShell hook is embedded at the top of this 
 2. `detector.py` tokenizes the line, finds the manager binary, and classifies each issue against that manager's rule table.
 3. `corrector.py` turns issues into concrete commands; package typos go through `packages.py`, which queries the npm registry search API and ranks by `0.8 × edit-distance similarity + 0.2 × log(weekly downloads)` (clamped). Network failures degrade gracefully to a local corpus of popular packages plus a curated typo map — the tool never crashes offline.
 
+## Fast probe (Go)
+
+The hook runs the probe **on the prompt path**, so its start-up is a delay the
+user feels after every failed command. Starting a Python interpreter plus
+`typer` costs far more than the detection itself, so the probe path is also
+available as a compiled Go binary:
+
+```
+fixpm (Python)       ~250 ms
+fixpm-probe (Go)      ~95 ms
+```
+
+(Measured on Windows/Git Bash, 30 interleaved runs, median. A bare Go binary
+needs ~75 ms just to start there, so almost all of the probe's cost is process
+creation rather than detection.)
+
+The shell hooks prefer `fixpm-probe` when it is on PATH and fall back to the
+Python CLI otherwise. `fixpm doctor` reports which one is active.
+
+```bash
+cd go && go build -ldflags="-s -w" -o fixpm-probe.exe .   # or: go build .
+```
+
+Rules are **not** duplicated: `scripts/gen_go_rules.py` generates
+`go/rules_gen.go` straight from `src/fixpm/rules/*.py`, and
+`scripts/gen_parity_vectors.py` records golden vectors from the real Python CLI
+for `go test` to replay. Both have a `--check` mode for CI. Adding a rule in
+Python is therefore enough; regenerate afterwards.
+
+```bash
+python scripts/gen_go_rules.py         # then: --check in CI
+python scripts/gen_parity_vectors.py   # then: --check in CI
+cd go && go test ./...
+```
+
 ## Troubleshooting
 
 **The hook never prints a hint after a failed npm command.**
@@ -145,7 +180,7 @@ A real-terminal recording of the PowerShell hook is embedded at the top of this 
 fixpm doctor
 ```
 
-It prints the resolved binary, version, rule-set fingerprint and per-shell hook status, and flags any other `fixpm` copies visible on PATH.
+It prints the resolved binary, version, fast-probe status, rule-set fingerprint and per-shell hook status, and flags any other `fixpm` copies visible on PATH.
 
 ## Contributing
 
@@ -185,6 +220,7 @@ See [CONTRIBUTING notes above](#contributing); open an issue first for new packa
 
 ## Roadmap
 
+- [x] Compiled Go probe for the hook path (see [Fast probe](#fast-probe-go))
 - [ ] Deeper pnpm / yarn (Berry) flag coverage
 - [x] PowerShell hook (`--init powershell`)
 - [ ] fish hook
