@@ -174,7 +174,14 @@ def _analyze_subcommand(spec: ManagerSpec, tokens: list[str],
             flagged.add(jj)
     positional = [(jj, t) for jj, t in positional if jj not in flagged]
 
-    if canon in spec.arg_required and not positional and extra == 0:
+    # Only report a missing argument when nothing else was flagged. For
+    # `npm uninstall save-dev` the real problem is the missing dashes, and
+    # pairing it with "needs an argument" emitted a second suggestion that
+    # still contained the very typo the first one fixes:
+    #   [missing --]       npm uninstall --save-dev
+    #   [missing argument] npm uninstall save-dev <package>
+    if (canon in spec.arg_required and not positional and not flagged
+            and extra == 0):
         issues.append(Issue(
             IssueKind.ARG_REQUIRED, sub, sub_abs,
             f"`{spec.name} {sub}` needs an argument "

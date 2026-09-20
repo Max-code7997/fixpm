@@ -5,8 +5,8 @@ Windows that trips prompt_toolkit's console-buffer detection)."""
 
 from __future__ import annotations
 
-import typer
 import questionary
+import typer
 from questionary import Choice
 
 from .rules.base import KIND_LABEL, Correction

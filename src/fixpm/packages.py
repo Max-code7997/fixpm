@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import json
 import math
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from urllib.parse import quote, urlencode
 
@@ -19,7 +17,10 @@ from .distance import similarity
 
 SEARCH_URL = "https://registry.npmjs.org/-/v1/search"
 DOWNLOAD_URL = "https://api.npmjs.org/downloads/point/last-week/{pkg}"
-USER_AGENT = f"fixpm/{__version__} (https://github.com/fixpm/fixpm)"
+# The npm registry asks clients to identify themselves with a reachable
+# contact URL. This previously pointed at github.com/fixpm/fixpm, which does
+# not exist (HTTP 404), so fixpm advertised a dead contact on every request.
+USER_AGENT = f"fixpm/{__version__} (+https://github.com/Max-code7997/fixpm)"
 
 # Curated high-signal typos so the tool stays useful fully offline.
 POPULAR_FALLBACK: dict[str, str] = {
@@ -127,6 +128,12 @@ class NpmRegistry:
             return None
         if url in self._cache:
             return self._cache[url]
+        # Imported lazily on purpose: urllib.request drags in http.client,
+        # email and ssl, which is pure startup cost for the shell-hook probe
+        # path (subcommand/flag typos) that never reaches the network.
+        import urllib.error
+        import urllib.request
+
         req = urllib.request.Request(
             url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}
         )

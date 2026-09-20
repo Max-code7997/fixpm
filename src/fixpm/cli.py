@@ -12,15 +12,19 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from importlib import resources
 
 import typer
 
 from . import __version__
 from .corrector import get_corrections
-from .interactive import choose
 from .rules import all_specs, spec_for_binary
 from .rules.base import KIND_LABEL
+
+# NOTE: `fixpm.interactive` (-> questionary -> prompt_toolkit, ~280 ms) and
+# `importlib.resources` (~74 ms) are imported lazily at their call sites. The
+# shell hook runs `fixpm --dry-run` after every failed npm-family command, so
+# startup latency is user-visible and only the interactive / --init paths
+# actually need those modules.
 
 app = typer.Typer(
     add_completion=False,
@@ -114,6 +118,9 @@ def main(
             typer.echo(f"  [{KIND_LABEL[c.kind]}] {c.command}")
         return
 
+    # ~280 ms of questionary/prompt_toolkit, paid only when we actually prompt.
+    from .interactive import choose
+
     choice = choose(corrections)
     if choice is None:
         typer.echo("Cancelled.")
@@ -144,14 +151,31 @@ def doctor() -> None:
     typer.echo(f"version          : {__version__}")
     typer.echo(f"package dir      : {Path(__file__).resolve().parent}")
 
+    # The shell hook prefers the compiled probe because it runs on the prompt
+    # path; without it every failed npm command pays Python's start-up.
+    probe = shutil.which("fixpm-probe")
+    typer.echo(
+        "fast probe       : "
+        + (f"{probe}  (hook uses this path)" if probe else
+           "not installed  (hook falls back to this Python CLI)")
+    )
+
     from . import packages as _pkg
-    blob = "\n".join(_pkg.POPULAR_PACKAGES).encode("utf-8")
-    fingerprint = hashlib.sha1(blob).hexdigest()[:8]
+    from . import rules as _rules  # noqa: E402
+
+    # Fingerprint the rule tables themselves, not just the package corpus:
+    # `doctor` is the tool for "why does my fixpm not know this rule yet?", so
+    # a rules edit must change the value it prints.
+    rule_files = sorted(Path(_rules.__file__).parent.glob("*.py"))
+    rule_blob = b"\n".join(f.read_bytes() for f in rule_files)
+    corpus_blob = "\n".join(_pkg.POPULAR_PACKAGES).encode("utf-8")
+    fingerprint = hashlib.sha1(rule_blob + b"\n" + corpus_blob).hexdigest()[:8]
     rules_mtime = datetime.fromtimestamp(
-        Path(_pkg.__file__).stat().st_mtime
+        max(f.stat().st_mtime for f in rule_files)
     ).strftime("%Y-%m-%d %H:%M")
     typer.echo(
-        f"rule set         : corpus={len(_pkg.POPULAR_PACKAGES)} pkgs, "
+        f"rule set         : {len(rule_files)} rule modules, "
+        f"corpus={len(_pkg.POPULAR_PACKAGES)} pkgs, "
         f"curated={len(_pkg.POPULAR_FALLBACK)} typos, "
         f"fingerprint={fingerprint}, mtime={rules_mtime}"
     )
@@ -205,6 +229,8 @@ def doctor() -> None:
 
 
 def _emit_hook(shell: str) -> None:
+    from importlib import resources
+
     filename = _HOOKS.get(shell)
     if filename is None:
         supported = ", ".join(sorted(_HOOKS))
