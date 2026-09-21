@@ -34,8 +34,8 @@ __fixpm_arm() {
 
 # Run the typo probe. Prefers the compiled `fixpm-probe`: this sits on the
 # prompt path, where the Python CLI's interpreter start-up is directly felt as
-# a pause after every failed npm command. The --deadline budget means a slow
-# npm registry can never hold the prompt hostage; the Python fallback has no
+# a pause after every failed command. The --deadline budget means a slow npm
+# registry can never hold the prompt hostage; the Python fallback has no
 # such cap, so installing the probe is worth it on its own.
 __fixpm_probe() {
   if command -v fixpm-probe >/dev/null 2>&1; then
@@ -75,7 +75,7 @@ __fixpm_hook() {
   [ "$ec" -eq 0 ] && return 0
   case "$cmd" in
     ""|fixpm*|"npm -v"*) return 0 ;;
-    npm*|npx*|pnpx*|pnpm*|yarn*)
+    npm*|npx*|pnpx*|pnpm*|yarn*|git*|docker*|cargo*|pip*|go*|sudo\ *)
       # Set FIXPM_DEBUG=1 to see why the probe fails (e.g. fixpm not on PATH).
       if [ -n "${FIXPM_DEBUG:-}" ]; then
         __fixpm_probe "$cmd"

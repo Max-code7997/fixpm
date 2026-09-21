@@ -1,6 +1,6 @@
-"""Bundled rule tables. Importing a module here registers its manager spec."""
+"""Bundled rule tables. Importing a module here registers its spec."""
 
-from . import npm, npx, pnpm, yarn  # noqa: F401
+from . import cargo, docker, git, go, npm, npx, pip, pnpm, yarn  # noqa: F401
 from .base import ManagerSpec, all_specs, register, spec_for_binary
 
 __all__ = ["ManagerSpec", "all_specs", "register", "spec_for_binary"]

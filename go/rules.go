@@ -17,8 +17,14 @@ type ManagerSpec struct {
 	PackageCommands []string
 	ArgRequired     []string
 	TypoHints       map[string]string
-	SubVerbs        []string
-	PackageFirst    bool
+	// Chains maps a chain command to its second-level verbs (`global` -> add,
+	// remove, ... for yarn; `container` -> ls, prune, ... for docker). A
+	// command absent from the map is treated as a plain subcommand.
+	Chains       map[string][]string
+	PackageFirst bool
+	// SubcommandMinScore is the similarity floor for accepting a subcommand
+	// typo. See fixpm.rules.base.ManagerSpec for why it differs per CLI.
+	SubcommandMinScore float64
 }
 
 // Vocabulary mirrors ManagerSpec.vocabulary: commands() | aliases().

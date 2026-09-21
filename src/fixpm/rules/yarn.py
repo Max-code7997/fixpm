@@ -31,11 +31,14 @@ YARN = register(
             "--json",
         ),
         value_flags=("--cwd", "--registry"),
-        package_commands=("add", "dlx", "create", "global add"),
+        package_commands=("add", "dlx", "create", "global add",
+                          "global remove", "global upgrade"),
         arg_required=("run", "exec", "dlx", "add", "remove", "info", "why",
                       "config", "owner", "tag", "team"),
-        sub_verbs=("add", "remove", "upgrade", "bin", "dir", "list", "ls",
-                   "link", "unlink", "upgrade-interactive"),
+        chains={
+            "global": ("add", "remove", "upgrade", "bin", "dir", "list", "ls",
+                       "link", "unlink", "upgrade-interactive"),
+        },
         typo_hints={
             "instal": "install", "isntall": "install", "insall": "install",
             "remve": "remove",

@@ -28,7 +28,7 @@ __fixpm_precmd() {
   (( ec == 0 )) && return 0
   case "$cmd" in
     ""|fixpm*|"npm -v"*) return 0 ;;
-    npm*|npx*|pnpx*|pnpm*|yarn*)
+    npm*|npx*|pnpx*|pnpm*|yarn*|git*|docker*|cargo*|pip*|go*|sudo\ *)
       # Set FIXPM_DEBUG=1 to see why the probe fails (e.g. fixpm not on PATH).
       if [[ -n "${FIXPM_DEBUG:-}" ]]; then
         __fixpm_probe "$cmd"

@@ -22,14 +22,14 @@ from .rules.base import KIND_LABEL
 
 # NOTE: `fixpm.interactive` (-> questionary -> prompt_toolkit, ~280 ms) and
 # `importlib.resources` (~74 ms) are imported lazily at their call sites. The
-# shell hook runs `fixpm --dry-run` after every failed npm-family command, so
+# shell hook runs `fixpm --dry-run` after every failed command it covers, so
 # startup latency is user-visible and only the interactive / --init paths
 # actually need those modules.
 
 app = typer.Typer(
     add_completion=False,
     context_settings={"help_option_names": ["-h", "--help"]},
-    help="Fix broken npm / npx / pnpm / yarn commands.",
+    help="Fix mistyped npm, git, docker, cargo, pip and go commands.",
 )
 
 ENV_COMMAND = "FIXPM_LAST_COMMAND"
@@ -65,7 +65,7 @@ def main(
     ),
     manager: str | None = typer.Option(
         None, "--manager", "-m",
-        help="Force a package manager instead of auto-detecting.",
+        help="Force one rule table (npm, git, docker, ...) instead of auto-detecting.",
     ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Print fixes without prompting or executing."
@@ -179,6 +179,8 @@ def doctor() -> None:
         f"curated={len(_pkg.POPULAR_FALLBACK)} typos, "
         f"fingerprint={fingerprint}, mtime={rules_mtime}"
     )
+    covered = sorted({s.name for s in _rules.all_specs()})
+    typer.echo(f"coverage         : {len(covered)} CLIs -- {', '.join(covered)}")
 
     # A hook line only helps if the shell can actually execute it. Matching the
     # expected text is not enough: `. (fixpm --init powershell)` reads like it

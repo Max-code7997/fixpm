@@ -1,7 +1,10 @@
-"""Classify what went wrong in a failed package-manager command line.
+"""Classify what went wrong in a failed command line.
 
-One generic engine consumes every ``ManagerSpec``; per-manager knowledge lives
-entirely in the rule tables under ``fixpm.rules``.
+One generic engine consumes every ``ManagerSpec``; per-CLI knowledge lives
+entirely in the rule tables under ``fixpm.rules``. The engine must never see
+output of the failed command — unlike tools that re-run it to read the error,
+fixpm classifies from the command line alone, which is what keeps it under
+~100 ms and free of side effects.
 """
 
 from __future__ import annotations
@@ -42,11 +45,25 @@ def _nearest(token: str, pool: tuple[str, ...], top: int = 2,
                                top=top, min_score=min_score)]
 
 
-def _sub_candidates(token: str, spec: ManagerSpec) -> list[str]:
+def _hinted(token: str, spec: ManagerSpec, pool: set[str] | tuple[str, ...],
+            ) -> str | None:
+    """The curated hint for *token*, if it is valid in this slot.
+
+    One ``typo_hints`` map feeds both the command slot and the chain-verb slot,
+    so the target is checked against the slot's own vocabulary. Without that,
+    a hint meant for one slot leaks into the other and suggests an invalid
+    command: ``lss -> ls`` is a docker object verb, not a top-level one.
+    """
     hint = spec.typo_hints.get(token.lower())
-    if hint:
+    return hint if hint is not None and hint in pool else None
+
+
+def _sub_candidates(token: str, spec: ManagerSpec) -> list[str]:
+    hint = _hinted(token, spec, spec.vocabulary)
+    if hint is not None:
         return [hint]
-    return _nearest(token, tuple(spec.vocabulary), top=3, min_score=0.55)
+    return _nearest(token, tuple(spec.vocabulary), top=3,
+                    min_score=spec.subcommand_min_score)
 
 
 def analyze(
@@ -58,6 +75,12 @@ def analyze(
     if located is None:
         return tokens, None, []
     index, spec = located
+    if index < 0:
+        # Forced table whose binary is absent from the line. Synthesise it so
+        # the suggestion is a command you can actually run rather than a
+        # fragment: --manager git "comit -m x" -> "git commit -m x".
+        tokens = [spec.binaries[0], *tokens]
+        index = 0
     if spec.package_first:
         return tokens, spec, _analyze_package_first(spec, tokens, index + 1)
     return tokens, spec, _analyze_subcommand(spec, tokens, index + 1)
@@ -69,7 +92,11 @@ def _locate(tokens: list[str],
         for i, t in enumerate(tokens[:4]):
             if t in spec.binaries:
                 return i, spec
-        return None
+        # Binary absent: -1 tells analyze() to synthesise it. Returning None
+        # here made every bare fragment answer "No fix found", which left
+        # --manager usable only when the binary was already in the line (and
+        # then auto-detection would have found it anyway).
+        return -1, spec
     for i, t in enumerate(tokens[:4]):
         found = spec_for_binary(t)
         if found is not None:
@@ -117,25 +144,33 @@ def _analyze_subcommand(spec: ManagerSpec, tokens: list[str],
         # One fix at a time: stop validating after an unknown command.
         return issues
 
-    # Chain commands like `yarn global add <pkg>` — absorb the sub-verb.
-    # The sub-verb slot gets typo tolerance too: `yarn global ad x` must
-    # still resolve the chain (and report the typo) instead of falling apart.
+    # Chain commands like `yarn global add <pkg>`, `docker container ls` or
+    # `go mod tidy` — absorb the second-level verb. Which commands chain is a
+    # per-CLI fact (spec.chains), so the engine only does the lookup; the slot
+    # gets typo tolerance too, because `yarn global ad x` must still resolve
+    # the chain (and report the typo) instead of falling apart.
     extra = 0
-    if canon == "global" and spec.sub_verbs and i + 1 < len(rest):
+    verbs = spec.chains.get(canon, ())
+    if verbs and i + 1 < len(rest):
         nxt = rest[i + 1]
-        if nxt in spec.sub_verbs:
+        if nxt in verbs:
             extra = 1
-            canon = f"global {nxt}"
+            canon = f"{canon} {nxt}"
         else:
-            near = _nearest(nxt, spec.sub_verbs, top=1, min_score=0.55)
+            # Short transpositions (`ud` -> `up`, `ad` -> `add`) score 0.667
+            # and land just under every similarity floor, so curated hints
+            # cover them here too — validated against this slot.
+            hint = _hinted(nxt, spec, verbs)
+            near = [hint] if hint is not None else _nearest(
+                nxt, verbs, top=1, min_score=spec.subcommand_min_score)
             if near:
                 issues.append(Issue(
                     IssueKind.SUBCOMMAND_TYPO, nxt, start + i + 1,
-                    f"'{nxt}' is not a {spec.name} subcommand of 'global'",
+                    f"'{nxt}' is not a {spec.name} subcommand of '{canon}'",
                     tuple(near),
                 ))
                 extra = 1
-                canon = f"global {near[0]}"
+                canon = f"{canon} {near[0]}"
     effective = canon.rsplit(" ", 1)[-1]
     allowed = spec.flags.get(effective, ())
 
@@ -189,7 +224,10 @@ def _analyze_subcommand(spec: ManagerSpec, tokens: list[str],
             (),
         ))
 
-    if canon in spec.package_commands or canon.startswith("global "):
+    # Chained package commands are listed explicitly ("global add"), so this
+    # stays a plain membership test — the engine holds no idea of which chain
+    # names happen to take packages.
+    if canon in spec.package_commands:
         checked = 0
         for jj, token in positional:
             if checked >= 2:

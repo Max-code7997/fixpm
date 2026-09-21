@@ -79,7 +79,7 @@ def go_string_map(mapping: dict[str, str], indent: str) -> str:
     return "map[string]string{" + pairs + "}"
 
 
-def go_flags_map(mapping: dict[str, tuple[str, ...]]) -> str:
+def go_slice_map(mapping: dict[str, tuple[str, ...]]) -> str:
     if not mapping:
         return "nil"
     parts = []
@@ -94,14 +94,15 @@ def emit_spec(spec: ManagerSpec) -> str:
 \t\tBinaries:        {go_slice(spec.binaries, "")},
 \t\tCommands:        {go_slice(spec.commands, "")},
 \t\tAliases:         {go_string_map(spec.aliases, "")},
-\t\tFlags:           {go_flags_map(spec.flags)},
+\t\tFlags:           {go_slice_map(spec.flags)},
 \t\tGlobalFlags:     {go_slice(spec.global_flags, "")},
 \t\tValueFlags:      {go_slice(spec.value_flags, "")},
 \t\tPackageCommands: {go_slice(spec.package_commands, "")},
 \t\tArgRequired:     {go_slice(spec.arg_required, "")},
 \t\tTypoHints:       {go_string_map(spec.typo_hints, "")},
-\t\tSubVerbs:        {go_slice(spec.sub_verbs, "")},
+\t\tChains:          {go_slice_map(spec.chains)},
 \t\tPackageFirst:    {"true" if spec.package_first else "false"},
+\t\tSubcommandMinScore: {spec.subcommand_min_score!r},
 \t}},"""
 
 

@@ -2,7 +2,7 @@
 
 <!-- TODO(badges): CI status, PyPI version, Python versions, license -->
 
-**Interactive command fixer for npm / npx / pnpm / yarn typos.**
+**Interactive command fixer for mistyped CLIs — npm, git, docker, cargo, pip, go.**
 
 You typed `npm isntall react`. Your terminal yelled at you. `fixpm` knows what you meant — pick the fix with arrow keys, press Enter, done.
 
@@ -18,13 +18,16 @@ Manually verified end-to-end (hook install + detection + interactive fix) on:
 
 ## Why
 
-Package-manager CLIs fail in very predictable ways: a mistyped subcommand (`isntall`), a missing flag prefix (`save-dev` instead of `--save-dev`), or a mistyped package name (`loadash`). Generic "did you mean" tools don't understand that `add` is valid for `yarn` but means `install` on `npm`, or that `--frozen-lockfile` belongs to `pnpm install`.
+CLIs fail in very predictable ways: a mistyped subcommand (`isntall`, `comit`, `buid`), a missing flag prefix (`save-dev` instead of `--save-dev`), or a mistyped package name (`loadash`). Generic "did you mean" tools don't understand that `add` is valid for `yarn` but means `install` on `npm`, or that `--frozen-lockfile` belongs to `pnpm install`.
 
-`fixpm` ships a declarative rule table per package manager plus live npm-registry lookups, so suggestions are syntax-aware, not just string-similar.
+`fixpm` ships a declarative rule table per CLI plus live npm-registry lookups, so suggestions are syntax-aware, not just string-similar.
+
+It runs **on the prompt path**, so it never re-executes your failed command to read its error output — it classifies from the command line alone. That is what keeps it under ~100 ms and free of side effects on a command that may not be idempotent. (Reading output by re-running is the usual approach in this space, and it costs the failed command's runtime a second time: a failing `npm` invocation measured 1.2–1.8 s here, before any suggestion appears.)
 
 ## Features
 
-- **Automatic detection** — a tiny zsh/bash hook notices when an `npm`-family command exits non-zero and nudges you.
+- **Automatic detection** — a tiny bash/zsh/PowerShell hook notices when a covered command exits non-zero and nudges you.
+- **11 CLIs covered** — npm, npx, pnpx, pnpm, yarn, git, docker, docker-compose, cargo, pip and go.
 - **Five error classes**: subcommand typo, flag typo, missing flag prefix (`--`), missing required argument, package-name typo.
 - **Registry-backed package fixes** — candidates ranked by edit distance *and* weekly download count (typos like `loadash` → `lodash`, never a dead lookalike package).
 - **Interactive or one-shot** — arrow-key selection, or `--dry-run` to print fixes.
@@ -120,11 +123,20 @@ A real-terminal recording of the PowerShell hook is embedded at the top of this 
 | `pnpm ad left-pad` | `pnpm add left-pad` | subcommand typo |
 | `yarn globla add vite` | `yarn global add vite` | subcommand typo |
 | `npx creat-react-app web` | `npx create-react-app web` | package typo |
+| `git comit -m wip` | `git commit -m wip` | subcommand typo |
+| `docker contaner ls` | `docker container ls` | subcommand typo |
+| `docker container lss` | `docker container ls` | second-level verb typo |
+| `go mod tidyy` | `go mod tidy` | second-level verb typo |
+| `git remote ad origin url` | `git remote add origin url` | second-level verb typo |
+| `docker-compose ud` | `docker-compose up` | subcommand typo |
+| `cargo biuld --release` | `cargo build --release` | subcommand typo |
+| `pip3 unistall requests` | `pip3 uninstall requests` | subcommand typo |
+| `go tset ./...` | `go test ./...` | subcommand typo |
 
 ## How it works
 
 1. The shell hook exports `$FIXPM_LAST_COMMAND` / `$FIXPM_LAST_EXIT_CODE`; `fixpm` reads them (or takes the command as arguments).
-2. `detector.py` tokenizes the line, finds the manager binary, and classifies each issue against that manager's rule table.
+2. `detector.py` tokenizes the line, finds the CLI's binary, and classifies each issue against that CLI's rule table.
 3. `corrector.py` turns issues into concrete commands; package typos go through `packages.py`, which queries the npm registry search API and ranks by `0.8 × edit-distance similarity + 0.2 × log(weekly downloads)` (clamped). Network failures degrade gracefully to a local corpus of popular packages plus a curated typo map — the tool never crashes offline.
 
 ## Fast probe (Go)
@@ -184,7 +196,7 @@ It prints the resolved binary, version, fast-probe status, rule-set fingerprint 
 
 ## Contributing
 
-Contributions welcome — especially **rule tables** for pnpm/yarn coverage.
+Contributions welcome — especially **rule tables** for more CLIs and deeper pnpm/yarn flag coverage.
 
 ```bash
 git clone https://github.com/Max-code7997/fixpm && cd fixpm
@@ -212,15 +224,27 @@ NPM = register(
 
 Guidelines:
 
-- One PR per logical change (a new manager, a batch of flags, …).
-- Add a pytest case in `tests/test_corrections.py` for every new behavior.
+- One PR per logical change (a new CLI, a batch of flags, …).
+- Add a pytest case in `tests/test_corrections.py` for every new behavior — including a *negative* one when the change could cause a false suggestion.
 - Flag lists may be partial — unknown flags on unlisted commands are simply not validated (conservative by design).
+- Only declare `flags` for a command when the list is actually complete. An incomplete list makes `fixpm` call valid input wrong, which is worse than staying quiet; that is why the git/docker/cargo/pip/go tables leave `flags` empty.
+- Set `subcommand_min_score` higher (0.7) for CLIs with a **plugin namespace** (`git lfs`, `docker buildx`, `cargo nextest`). At the npm-tuned 0.55 floor those valid commands score high enough to be misreported as typos (`nextest` → `test` is 0.571, `lfs` → `ls` is 0.667). Where a short typo then falls below the floor, add a `typo_hint` — hints bypass the distance check.
+- Commands whose second word is a **verb** rather than user data belong in `chains` (`{"container": ("ls", "prune", …)}`), which is what validates the second slot. Leave out commands whose second token is a value — `git config <key>`, `go tool <name>`, `go env <VAR>` — since any list there would accuse valid input. A `typo_hint` is slot-checked, so `lss → ls` fires under `docker container` and nowhere else.
+- Adding a spec needs no engine changes, but regenerate both artifacts so the Go probe stays in sync:
+
+```bash
+python scripts/gen_go_rules.py && python scripts/gen_parity_vectors.py
+cd go && go test ./...
+```
 
 See [CONTRIBUTING notes above](#contributing); open an issue first for new package managers.
 
 ## Roadmap
 
 - [x] Compiled Go probe for the hook path (see [Fast probe](#fast-probe-go))
+- [x] Rule tables for git / docker / docker-compose / cargo / pip / go
+- [x] Second-level verbs (`docker container ls`, `go mod tidy`, `pip cache purge`)
+- [ ] Flag validation for non-npm CLIs, generated from each tool's own `--help`
 - [ ] Deeper pnpm / yarn (Berry) flag coverage
 - [x] PowerShell hook (`--init powershell`)
 - [ ] fish hook

@@ -15,7 +15,7 @@ if (-not $global:__FixpmLoaded) {
 
     # Run the typo probe. Prefers the compiled fixpm-probe: this sits on the
     # prompt path, where the Python CLI's interpreter start-up is directly felt
-    # as a pause after every failed npm command. The --deadline budget means a
+    # as a pause after every failed command. The --deadline budget means a
     # slow npm registry can never hold the prompt hostage.
     # Resolved once at load time rather than on every prompt.
     $global:__FixpmProbe = if (Get-Command fixpm-probe -ErrorAction SilentlyContinue) {
@@ -41,7 +41,7 @@ if (-not $global:__FixpmLoaded) {
                 Write-Host "fixpm hook: cmd=$cmd ec=$ec" -ForegroundColor DarkYellow
             }
             if ($ec -eq 0) { return }
-            if ($cmd -notmatch '^(npm|npx|pnpx|pnpm|yarn)(\s|$)') { return }
+            if ($cmd -notmatch '^(sudo\s+)?(npm|npx|pnpx|pnpm|yarn|git|docker|docker-compose|cargo|pip|pip3|go)(\s|$)') { return }
             if ($cmd -match '^(fixpm|npm -v)') { return }
 
             # Run the probe without clobbering $LASTEXITCODE for the user.

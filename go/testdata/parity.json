@@ -494,40 +494,510 @@
         "--manager",
         "npm",
         "--dry-run",
-        "isntall react"
+        "isntall loadash"
       ],
-      "exit": 1,
-      "stdout": "No fix found for: isntall react\n"
+      "exit": 0,
+      "stdout": "  [command fix] npm install loadash\n"
     },
     {
       "args": [
         "--manager",
         "pnpm",
         "--dry-run",
-        "isntall react"
+        "isntall loadash"
       ],
-      "exit": 1,
-      "stdout": "No fix found for: isntall react\n"
+      "exit": 0,
+      "stdout": "  [command fix] pnpm install loadash\n"
     },
     {
       "args": [
         "--manager",
         "npm",
         "--dry-run",
-        "i react"
+        "i loadash"
       ],
-      "exit": 1,
-      "stdout": "No fix found for: i react\n"
+      "exit": 0,
+      "stdout": "  [package fix] npm i lodash\n"
     },
     {
       "args": [
         "--manager",
         "yarn",
         "--dry-run",
-        "isntall react"
+        "isntall loadash"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] yarn install loadash\n"
+    },
+    {
+      "args": [
+        "--manager",
+        "git",
+        "--dry-run",
+        "comit -m x"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git commit -m x\n"
+    },
+    {
+      "args": [
+        "--manager",
+        "go",
+        "--dry-run",
+        "tset"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] go test\n"
+    },
+    {
+      "args": [
+        "--manager",
+        "go",
+        "--dry-run",
+        "mod tidy"
       ],
       "exit": 1,
-      "stdout": "No fix found for: isntall react\n"
+      "stdout": "No fix found for: mod tidy\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git comit -m x"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git commit -m x\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git chekcout main"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git checkout main\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git stauts"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git status\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git mrege main"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git merge main\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git puhs origin main"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git push origin main\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git revparse HEAD"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git rev-parse HEAD\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker contaner ls"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker container ls\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker buid -t x ."
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker build -t x .\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker resta rt abc"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker restart rt abc\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker-compose ud"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker-compose up\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker-compose dwon"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker-compose down\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "cargo biuld --release"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] cargo build --release\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "cargo tset"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] cargo test\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip instal requests"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] pip install requests\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip3 unistall requests"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] pip3 uninstall requests\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go tset ./..."
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] go test ./...\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go biuld"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] go build\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker container lss"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker container ls\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker image pruen"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker image prune\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker system prun"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker system prune\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker compose ud"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker compose up\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker compose dwon"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] docker compose down\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git remote ad origin url"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git remote add origin url\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git stash aplpy"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git stash apply\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git submodule updte"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] git submodule update\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go mod tidyy"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] go mod tidy\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go work sycn"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] go work sync\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip cache purg"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] pip cache purge\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip config st global.index-url x"
+      ],
+      "exit": 0,
+      "stdout": "  [command fix] pip config set global.index-url x\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker container ls"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker container ls\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker image prune -f"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker image prune -f\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker compose config"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker compose config\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git remote set-url origin url"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git remote set-url origin url\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git stash push -m wip"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git stash push -m wip\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git submodule update --init --recursive"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git submodule update --init --recursive\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go mod download"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: go mod download\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go mod why -m x"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: go mod why -m x\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go work use ./x"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: go work use ./x\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip cache dir"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: pip cache dir\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker lss"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker lss\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git lfs pull"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git lfs pull\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git flow init"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git flow init\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "cargo nextest run"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: cargo nextest run\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "cargo watch -x test"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: cargo watch -x test\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git commit -m x"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git commit -m x\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git add -A"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git add -A\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "git -c core.pager=cat log"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: git -c core.pager=cat log\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker run -it --rm ubuntu bash"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker run -it --rm ubuntu bash\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker compose up -d"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker compose up -d\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker system prune -af"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker system prune -af\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "docker-compose up -d"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: docker-compose up -d\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "cargo test --features foo"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: cargo test --features foo\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "pip install -r requirements.txt"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: pip install -r requirements.txt\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go test ./..."
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: go test ./...\n"
+    },
+    {
+      "args": [
+        "--dry-run",
+        "go mod tidy"
+      ],
+      "exit": 1,
+      "stdout": "No fix found for: go mod tidy\n"
     }
   ]
 }

@@ -1,8 +1,14 @@
 """Core data model shared by all rule tables and the detection engine.
 
-Adding support for a new package manager means building a ``ManagerSpec`` and
-calling :func:`register` on it — no engine changes required. See any module in
-``fixpm.rules`` for a worked example.
+Adding support for a new CLI means building a ``ManagerSpec`` and calling
+:func:`register` on it — no engine changes required. The class name predates
+non-package-manager specs (git, docker, cargo, go, pip); it describes any CLI
+with subcommands. See any module in ``fixpm.rules`` for a worked example.
+
+Coverage is opt-in per field, and empty means "do not validate":
+``flags`` empty skips flag checking, ``arg_required`` empty never reports a
+missing argument. That is why the non-npm specs leave both empty — a partial
+allow-list would flag valid input as wrong.
 """
 
 from __future__ import annotations
@@ -65,9 +71,26 @@ class ManagerSpec:
     value_flags      flags that consume the following token
     package_commands commands whose positional args are package names
     arg_required     commands that fail without a positional argument
-    typo_hints       curated misspelling -> correct token (overrides distance)
-    sub_verbs        second-level verbs after chain commands (yarn global add)
+    typo_hints       curated misspelling -> correct token (overrides distance).
+                     Consulted in the command slot and in the chain-verb slot;
+                     an entry only applies where its target is valid, so one
+                     map can serve both (see detector._hinted). Needed for
+                     short transpositions (``ud`` -> ``up``), which score
+                     0.667 and fall under every similarity floor.
+    chains           chain command -> its second-level verbs. `yarn global add`,
+                     `docker container ls`, `go mod tidy` and `pip cache purge`
+                     all put a verb after the chain command; declaring that
+                     closed verb set here is what lets the engine validate the
+                     slot (and fix a typo in it) without knowing the CLI. A
+                     command absent from this map is treated as a plain
+                     subcommand and its args are never matched against verbs.
     package_first    npx-style CLIs whose first positional is a package
+    subcommand_min_score  similarity floor for accepting a subcommand typo.
+                     Lower it for closed vocabularies (npm's command space is
+                     fixed); raise it for CLIs with a plugin namespace, where
+                     an unlisted-but-valid command (``git lfs``, ``docker
+                     buildx``, ``cargo nextest``) must not be reported as a
+                     typo of whatever it happens to resemble.
     """
 
     name: str
@@ -80,8 +103,9 @@ class ManagerSpec:
     package_commands: tuple[str, ...] = ()
     arg_required: tuple[str, ...] = ()
     typo_hints: dict[str, str] = field(default_factory=dict)
-    sub_verbs: tuple[str, ...] = ()
+    chains: dict[str, tuple[str, ...]] = field(default_factory=dict)
     package_first: bool = False
+    subcommand_min_score: float = 0.55
 
     @property
     def vocabulary(self) -> set[str]:

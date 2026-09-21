@@ -82,12 +82,23 @@ func nearest(token string, pool []string, top int, minScore float64) []string {
 	return Rank(strings.ToLower(token), lowered, top, minScore)
 }
 
+// hinted mirrors detector._hinted: the curated hint for *token* if it is valid
+// in this slot. One TypoHints map feeds both the command slot and the
+// chain-verb slot, so the target is checked against the slot's own vocabulary.
+func hinted(token string, spec *ManagerSpec, pool []string) []string {
+	hint, ok := spec.TypoHints[strings.ToLower(token)]
+	if !ok || !contains(pool, hint) {
+		return nil
+	}
+	return []string{hint}
+}
+
 // subCandidates mirrors detector._sub_candidates.
 func subCandidates(token string, spec *ManagerSpec) []string {
-	if hint, ok := spec.TypoHints[strings.ToLower(token)]; ok {
-		return []string{hint}
+	if hint := hinted(token, spec, spec.Vocabulary()); hint != nil {
+		return hint
 	}
-	return nearest(token, spec.Vocabulary(), 3, 0.55)
+	return nearest(token, spec.Vocabulary(), 3, spec.SubcommandMinScore)
 }
 
 // Analyze mirrors detector.analyze.
@@ -96,6 +107,12 @@ func Analyze(text string, spec *ManagerSpec) ([]string, *ManagerSpec, []Issue) {
 	index, located := locate(tokens, spec)
 	if located == nil {
 		return tokens, nil, nil
+	}
+	if index < 0 {
+		// Forced table whose binary is absent: synthesise it so the fix is a
+		// runnable command. See detector.analyze for the rationale.
+		tokens = append([]string{located.Binaries[0]}, tokens...)
+		index = 0
 	}
 	if located.PackageFirst {
 		return tokens, located, analyzePackageFirst(located, tokens, index+1)
@@ -117,7 +134,9 @@ func locate(tokens []string, spec *ManagerSpec) (int, *ManagerSpec) {
 				}
 			}
 		}
-		return -1, nil
+		// Binary absent: -1 tells Analyze to synthesise it. See
+		// detector._locate for why returning nil here was wrong.
+		return -1, spec
 	}
 	for i := 0; i < limit; i++ {
 		if found := SpecForBinary(tokens[i]); found != nil {
@@ -190,25 +209,35 @@ func analyzeSubcommand(spec *ManagerSpec, tokens []string, start int) []Issue {
 		return issues
 	}
 
-	// Chain commands like `yarn global add <pkg>` — absorb the sub-verb. The
-	// sub-verb slot gets typo tolerance too: `yarn global ad x` must still
-	// resolve the chain (and report the typo) instead of falling apart.
+	// Chain commands like `yarn global add <pkg>`, `docker container ls` or
+	// `go mod tidy` — absorb the second-level verb. Which commands chain is a
+	// per-CLI fact (spec.Chains); the slot gets typo tolerance too, so
+	// `yarn global ad x` still resolves the chain and reports the typo.
 	extra := 0
-	if canon == "global" && len(spec.SubVerbs) > 0 && i+1 < len(rest) {
+	verbs := spec.Chains[canon]
+	if len(verbs) > 0 && i+1 < len(rest) {
 		nxt := rest[i+1]
-		if contains(spec.SubVerbs, nxt) {
+		if contains(verbs, nxt) {
 			extra = 1
-			canon = "global " + nxt
-		} else if near := nearest(nxt, spec.SubVerbs, 1, 0.55); len(near) > 0 {
-			issues = append(issues, Issue{
-				Kind:       KindSubcommandTypo,
-				Token:      nxt,
-				Index:      start + i + 1,
-				Message:    "'" + nxt + "' is not a " + spec.Name + " subcommand of 'global'",
-				Candidates: near,
-			})
-			extra = 1
-			canon = "global " + near[0]
+			canon = canon + " " + nxt
+		} else {
+			// Curated hints first (short transpositions such as `ud` -> `up`
+			// fall under every floor), validated against this slot.
+			near := hinted(nxt, spec, verbs)
+			if near == nil {
+				near = nearest(nxt, verbs, 1, spec.SubcommandMinScore)
+			}
+			if len(near) > 0 {
+				issues = append(issues, Issue{
+					Kind:       KindSubcommandTypo,
+					Token:      nxt,
+					Index:      start + i + 1,
+					Message:    "'" + nxt + "' is not a " + spec.Name + " subcommand of '" + canon + "'",
+					Candidates: near,
+				})
+				extra = 1
+				canon = canon + " " + near[0]
+			}
 		}
 	}
 
@@ -296,7 +325,9 @@ func analyzeSubcommand(spec *ManagerSpec, tokens []string, start int) []Issue {
 		})
 	}
 
-	if contains(spec.PackageCommands, canon) || strings.HasPrefix(canon, "global ") {
+	// Chained package commands are listed explicitly ("global add"), so this
+	// stays a plain membership test. See detector._analyze_subcommand.
+	if contains(spec.PackageCommands, canon) {
 		checked := 0
 		for _, p := range positionals {
 			if checked >= 2 {
