@@ -41,6 +41,25 @@ $installed = Join-Path $DestDir "fixpm.exe"
 Copy-Item $exePath $installed -Force
 Write-Host "installed: $installed"
 
+# The compiled probe is what the shell hook runs on the prompt path. Releases
+# from 0.3.1 carry it; an older release has no such asset, which is a note
+# rather than a failure — the hook falls back to the Python CLI.
+$ProbeAsset = "fixpm-probe-windows-x64.exe"
+$probePath = Join-Path $tmp $ProbeAsset
+$probeSum = Join-Path $tmp "$ProbeAsset.sha256"
+try {
+    Invoke-WebRequest -Uri "$Base/$ProbeAsset" -OutFile $probePath -UseBasicParsing
+    Invoke-WebRequest -Uri "$Base/$ProbeAsset.sha256" -OutFile $probeSum -UseBasicParsing
+    $probeExpected = (Get-Content $probeSum -Raw).Split(" ", 2)[0].Trim().ToLower()
+    $probeActual = (Get-FileHash $probePath -Algorithm SHA256).Hash.ToLower()
+    if ($probeExpected -ne $probeActual) { throw "sha256 mismatch for ${ProbeAsset}" }
+    $probeInstalled = Join-Path $DestDir "fixpm-probe.exe"
+    Copy-Item $probePath $probeInstalled -Force
+    Write-Host "installed: $probeInstalled (fast probe)"
+} catch {
+    Write-Host "note: no fast probe installed ($($_.Exception.Message))"
+}
+
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if (($userPath -split ";") -notcontains $DestDir) {
     [Environment]::SetEnvironmentVariable("Path", "$userPath;$DestDir", "User")

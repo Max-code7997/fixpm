@@ -61,7 +61,8 @@ Or download the single-file executable + sha256 directly from
 **Package managers:**
 
 ```bash
-# Homebrew (macOS / Linux)
+# Homebrew (macOS / Linux) — prebuilt binary, no Python and no compile step.
+# Installs both `fixpm` and `fixpm-probe` (the fast path the hook prefers).
 brew tap Max-code7997/fixpm https://github.com/Max-code7997/homebrew-fixpm
 brew install fixpm
 
@@ -163,8 +164,14 @@ creation rather than detection.)
 The shell hooks prefer `fixpm-probe` when it is on PATH and fall back to the
 Python CLI otherwise. `fixpm doctor` reports which one is active.
 
+It is published prebuilt, so you do not need a Go toolchain to get the fast
+path: every release carries `fixpm-probe-<platform>-<arch>` (the same
+`<platform>-<arch>` you find on the main binary), the Homebrew formula installs
+it alongside `fixpm`, and `scripts/install.sh` fetches it when available.
+
 ```bash
-cd go && go build -ldflags="-s -w" -o fixpm-probe.exe .   # or: go build .
+# only needed if you want to build it yourself
+cd go && go build -trimpath -ldflags="-s -w" -o ../fixpm-probe .
 ```
 
 Rules are **not** duplicated: `scripts/gen_go_rules.py` generates

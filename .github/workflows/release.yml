@@ -15,10 +15,13 @@ jobs:
         include:
           - os: windows-latest
             artifact: fixpm-windows-x64.exe
+            probe: fixpm-probe-windows-x64.exe
           - os: ubuntu-latest
             artifact: fixpm-linux-x64
+            probe: fixpm-probe-linux-x64
           - os: macos-latest
             artifact: fixpm-macos-arm64
+            probe: fixpm-probe-macos-arm64
     # note: macos-13 (intel) matrix entry removed — the runner label is
     # effectively retired and queued forever; arm64 covers modern Macs.
     runs-on: ${{ matrix.os }}
@@ -28,6 +31,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      # The probe is what the shell hook actually runs on the prompt path, so
+      # it has to ship as a prebuilt binary: requiring a Go toolchain to get
+      # the fast path would leave every binary/PyPI/Homebrew install on the
+      # slower Python fallback. Version comes from go/go.mod, not a pin here.
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
 
       - name: Install
         run: |
@@ -45,17 +56,37 @@ jobs:
           if [ -f fixpm ] && [ ! -f "${{ matrix.artifact }}" ]; then mv fixpm "${{ matrix.artifact }}"; fi
           ls -la
 
-      - name: Generate sha256 checksum
+      # Same flags the README documents for a local build, so a self-built
+      # probe and this asset differ only by toolchain version.
+      - name: Build the hook probe
+        working-directory: go
+        run: go build -trimpath -ldflags="-s -w" -o "../dist/${{ matrix.probe }}" .
+
+      - name: Smoke-test the built probe
+        shell: bash
+        run: |
+          set -e
+          cd dist
+          # A rules mismatch (stale generated tables) would show up as a
+          # missing fix, so assert a fix instead of just a zero exit code.
+          out=$("./${{ matrix.probe }}" --dry-run "docker container lss")
+          echo "$out"
+          echo "$out" | grep -F "docker container ls"
+
+      - name: Generate sha256 checksums
         shell: bash
         run: |
           cd dist
           sha256sum "${{ matrix.artifact }}" > "${{ matrix.artifact }}.sha256"
-          cat "${{ matrix.artifact }}.sha256"
+          sha256sum "${{ matrix.probe }}" > "${{ matrix.probe }}.sha256"
+          cat "${{ matrix.artifact }}.sha256" "${{ matrix.probe }}.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: dist/${{ matrix.artifact }}*
+          path: |
+            dist/${{ matrix.artifact }}*
+            dist/${{ matrix.probe }}*
 
   release:
     needs: build

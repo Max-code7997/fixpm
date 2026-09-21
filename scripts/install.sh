@@ -44,19 +44,22 @@ echo "downloading $ASSET from $BASE ..."
 fetch "$BASE/$ASSET" "$TMP/$ASSET"
 fetch "$BASE/$ASSET.sha256" "$TMP/$ASSET.sha256"
 
-expected=$(cut -d' ' -f1 "$TMP/$ASSET.sha256" | tr -d "[:space:]")
-if command -v sha256sum >/dev/null 2>&1; then
-    actual=$(sha256sum "$TMP/$ASSET" | cut -d' ' -f1)
-elif command -v shasum >/dev/null 2>&1; then
-    actual=$(shasum -a 256 "$TMP/$ASSET" | cut -d' ' -f1)
-else
-    echo "error: no sha256sum/shasum available for checksum verification" >&2
-    exit 1
-fi
-if [ "$expected" != "$actual" ]; then
+# compare <file> against a "<sha256>  <name>" checksum file; 1 on mismatch
+verify_checksum() {
+    expected=$(cut -d' ' -f1 "$2" | tr -d "[:space:]")
+    if command -v sha256sum >/dev/null 2>&1; then
+        actual=$(sha256sum "$1" | cut -d' ' -f1)
+    elif command -v shasum >/dev/null 2>&1; then
+        actual=$(shasum -a 256 "$1" | cut -d' ' -f1)
+    else
+        return 1
+    fi
+    [ "$expected" = "$actual" ]
+}
+
+if ! verify_checksum "$TMP/$ASSET" "$TMP/$ASSET.sha256"; then
     echo "error: sha256 mismatch for $ASSET" >&2
-    echo "  expected: $expected" >&2
-    echo "  actual:   $actual" >&2
+    echo "  (or no sha256sum/shasum available to verify it)" >&2
     exit 1
 fi
 echo "checksum ok"
@@ -65,6 +68,23 @@ mkdir -p "$DEST"
 cp "$TMP/$ASSET" "$DEST/fixpm"
 chmod 0755 "$DEST/fixpm"
 echo "installed: $DEST/fixpm"
+
+# The compiled probe is what the shell hook runs on the prompt path. Releases
+# from 0.3.1 carry it; an older release simply has no such asset, which is a
+# note rather than a failure — the hook falls back to the Python CLI.
+PROBE="fixpm-probe-${platform}-${arch}"
+if fetch "$BASE/$PROBE" "$TMP/$PROBE" 2>/dev/null \
+   && fetch "$BASE/$PROBE.sha256" "$TMP/$PROBE.sha256" 2>/dev/null; then
+    if verify_checksum "$TMP/$PROBE" "$TMP/$PROBE.sha256"; then
+        cp "$TMP/$PROBE" "$DEST/fixpm-probe"
+        chmod 0755 "$DEST/fixpm-probe"
+        echo "installed: $DEST/fixpm-probe (fast probe)"
+    else
+        echo "warning: probe checksum mismatch - skipping it" >&2
+    fi
+else
+    echo "note: this release has no probe asset; the hook will use the Python CLI"
+fi
 
 case ":$PATH:" in
     *":$DEST:"*) ;;

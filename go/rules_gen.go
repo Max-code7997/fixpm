@@ -6,10 +6,10 @@
 package main
 
 // version mirrors fixpm.__version__.
-const version = "0.3.0"
+const version = "0.3.1"
 
 // userAgent mirrors fixpm.packages.USER_AGENT.
-const userAgent = "fixpm/0.3.0 (+https://github.com/Max-code7997/fixpm)"
+const userAgent = "fixpm/0.3.1 (+https://github.com/Max-code7997/fixpm)"
 
 // searchURL mirrors fixpm.packages.SEARCH_URL.
 const searchURL = "https://registry.npmjs.org/-/v1/search"
