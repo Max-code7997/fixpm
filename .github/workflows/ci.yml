@@ -85,11 +85,29 @@ jobs:
         shell: bash
         run: |
           set +e
-          out=$(brew install --formula "$PWD/packaging/homebrew-fixpm/Formula/fixpm.rb" 2>&1)
+          # `brew install <path>` is rejected: formulae must live in a tap. So
+          # expose this directory as one, which tests the file in this commit
+          # rather than whatever the published tap currently points at.
+          tapdir="$(brew --repository)/Library/Taps/maxcode7997/homebrew-fixpm"
+          mkdir -p "$(dirname "$tapdir")"
+          ln -sfn "$PWD/packaging/homebrew-fixpm" "$tapdir"
+          out=$(brew install maxcode7997/fixpm/fixpm 2>&1)
           rc=$?
           printf '%s\n' "$out"
           if [ "$rc" -ne 0 ]; then
             echo "::error title=brew install failed::$(printf '%s' "$out" | tail -25 | tr '\n' '|' | tr -d '\r')"
+            exit 1
+          fi
+
+      - name: The formula's own test
+        shell: bash
+        run: |
+          set +e
+          out=$(brew test maxcode7997/fixpm/fixpm 2>&1)
+          rc=$?
+          printf '%s\n' "$out"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error title=brew test failed::$(printf '%s' "$out" | tail -25 | tr '\n' '|' | tr -d '\r')"
             exit 1
           fi
 
