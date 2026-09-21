@@ -1,12 +1,12 @@
 {
-    "version": "0.3.0",
+    "version": "0.3.2",
     "description": "Interactive fixer for mistyped CLI commands — npm, git, docker, cargo, pip and go.",
     "homepage": "https://github.com/Max-code7997/fixpm",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Max-code7997/fixpm/releases/download/v0.3.0/fixpm-windows-x64.exe",
-            "hash": "1a9cb6608b4121b67f8665d61edb7b8a651430a3e911635b154464618e5ddb83"
+            "url": "https://github.com/Max-code7997/fixpm/releases/download/v0.3.2/fixpm-windows-x64.exe",
+            "hash": "3eeac45ad247ec8ee0a217f545259474b7d20ad44a19a5762fc6d1c366b61866"
         }
     },
     "bin": [

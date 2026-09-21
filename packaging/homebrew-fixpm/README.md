@@ -32,55 +32,40 @@ brew install Max-code7997/fixpm/fixpm
 
 ### Testing a formula change
 
-Homebrew does not run on Windows — verify on a Mac, or spin up a one-off macOS
-GitHub runner (see below).
+Homebrew does not run on Windows, so this repository's CI job
+**Homebrew formula (macOS)** is the verification: it installs the formula from
+the commit under test, then asserts that both binaries report the expected
+version and each fixes a typo. A green job is the only evidence that the
+formula works — treat a red one as a broken release, not as CI noise.
+
+To do it by hand on a Mac:
 
 ```bash
-brew install --build-from-source ./Formula/fixpm.rb   # install from the local formula
-fixpm --version && fixpm --dry-run "npm isntall react"
-brew audit --strict ./Formula/fixpm.rb                # style/lint checks
+brew install --formula ./Formula/fixpm.rb
+fixpm --version && fixpm-probe --version
+fixpm --dry-run "npm isntall react"
+brew audit --strict ./Formula/fixpm.rb
 brew uninstall fixpm
-```
-
-One-off verification on a GitHub macOS runner (no Mac needed): create a
-disposable workflow on any repo of yours:
-
-```yaml
-jobs:
-  formula-test:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: brew install --build-from-source ./Formula/fixpm.rb
-      - run: |
-          fixpm --version
-          fixpm --dry-run "npm isntall react"
 ```
 
 ### Updating after a new fixpm release
 
-The formula pins the PyPI **sdist** URL + sha256 for fixpm and every runtime
-dependency. After publishing a new version to PyPI:
+The formula installs prebuilt binaries, so there is no Python dependency
+closure to resolve — four url/sha256 pairs, taken straight from the release:
 
-1. Resolve the dependency closure and fetch fresh url/sha256 pairs:
+```bash
+TAG=vX.Y.Z
+for a in fixpm-macos-arm64 fixpm-probe-macos-arm64 \
+         fixpm-linux-x64 fixpm-probe-linux-x64; do
+    printf '%s ' "$a"
+    curl -fsSL "https://github.com/Max-code7997/fixpm/releases/download/$TAG/$a.sha256"
+done
+```
 
-   ```bash
-   pip install --dry-run --quiet --ignore-installed --report report.json fixpm==<NEW_VERSION>
-   ```
-
-   (`--ignore-installed` is essential — otherwise pip skips already-installed
-   deps and the closure comes back incomplete.)
-
-2. Update `Formula/fixpm.rb`:
-   - fixpm's own `url` / `sha256`
-   - any dependency whose version changed (their `resource` url/sha256);
-     add/remove `resource` blocks if the dependency set changed
-3. Sanity-check every changed pair by downloading the sdist and comparing:
-
-   ```bash
-   curl -fsSL -o /tmp/x.tar.gz "<url>" && shasum -a 256 /tmp/x.tar.gz
-   ```
-
-4. Run the test commands above, commit, push to `homebrew-fixpm`.
-
-(An automation script for steps 1–2 is planned; until then this is manual.)
+1. Set `version` to the tag, and update the four `url` + `sha256` pairs (the
+   two `on_arm`/`on_intel` blocks, plus the same two inside `resource "probe"`).
+2. Keep this directory and `Max-code7997/homebrew-fixpm` byte-identical — the
+   tap is what users install, this copy is what CI verifies.
+3. Push both. The CI job **Homebrew formula (macOS)** does a real install
+   against the published assets, so a broken pin fails there instead of on a
+   user's machine.

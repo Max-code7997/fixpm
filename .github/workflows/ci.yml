@@ -70,6 +70,42 @@ jobs:
         run: go test ./...
         working-directory: go
 
+  # The formula is the one install channel that cannot be exercised from the
+  # development machine (Homebrew does not run on Windows), so it gets a real
+  # `brew install` here. It also verifies the released macOS binary, which
+  # nothing else does: `--version` on a binary the runner cannot execute is
+  # exactly the failure the 0.3.1 probe had.
+  homebrew-formula:
+    name: Homebrew formula (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the formula from this commit
+        shell: bash
+        run: |
+          set +e
+          out=$(brew install --formula "$PWD/packaging/homebrew-fixpm/Formula/fixpm.rb" 2>&1)
+          rc=$?
+          printf '%s\n' "$out"
+          if [ "$rc" -ne 0 ]; then
+            echo "::error title=brew install failed::$(printf '%s' "$out" | tail -25 | tr '\n' '|' | tr -d '\r')"
+            exit 1
+          fi
+
+      - name: Both binaries must run
+        shell: bash
+        run: |
+          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/fixpm/__init__.py)
+          out="$(fixpm --version 2>&1) | $(fixpm-probe --version 2>&1) | $(fixpm --dry-run 'docker container lss' 2>&1) | $(fixpm-probe --dry-run 'go mod tidyy' 2>&1)"
+          printf '%s\n' "$out"
+          for want in "fixpm $version" "fixpm-probe $version" "docker container ls" "go mod tidy"; do
+            if ! printf '%s' "$out" | grep -qF "$want"; then
+              echo "::error title=installed formula is broken::missing [$want]; got [$out]"
+              exit 1
+            fi
+          done
+
   # The release workflow builds this binary on three platforms; until now
   # nothing ran the result, and a macOS build that aborts on startup shipped
   # straight to the release job. Building AND running it here is the gate that
