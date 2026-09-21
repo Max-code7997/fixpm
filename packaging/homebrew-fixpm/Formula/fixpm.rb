@@ -1,10 +1,10 @@
 class Fixpm < Formula
   include Language::Python::Virtualenv
 
-  desc "Interactive fixer for broken npm / npx / pnpm / yarn commands"
+  desc "Interactive fixer for mistyped CLI commands — npm, git, docker, cargo, pip and go"
   homepage "https://github.com/Max-code7997/fixpm"
-  url "https://files.pythonhosted.org/packages/ae/c6/ab745a01aa90cfda8ff87894f264160f2384a4a0c3f1001960b200275ae7/fixpm-0.2.1.tar.gz"
-  sha256 "2076ef59762e8decc168a3499e386e0e00397734840af5d93f4b665522323c56"
+  url "https://files.pythonhosted.org/packages/c5/12/ec203a68f38e1d178722a38689deadefe8f4493dfc2eae160f3c9b6a2b13/fixpm-0.3.0.tar.gz"
+  sha256 "502a300eb0732a1bfd59c002519d8d958da31af5c3b534bc757d84c9254c5a88"
   license "MIT"
 
   depends_on "python@3.12"
@@ -55,13 +55,13 @@ class Fixpm < Formula
   end
 
   resource "typer" do
-    url "https://files.pythonhosted.org/packages/ae/40/4a3db7990d1f62a53182aa96eaef57aeb2886a27f90a195bc66713565d31/typer-0.27.1.tar.gz"
-    sha256 "a79bef8469a79c45498e7b814ecf8d603cc7644e9acbd9e19cac0334240b18df"
+    url "https://files.pythonhosted.org/packages/16/f7/57713ba479fd405eb76de31404b2c744c289e336b2d999511ebf51e496f7/typer-0.27.2.tar.gz"
+    sha256 "269b7eb9d3c202ca84b4bc9618cb04ebb43d3d4d1e567e4c768607232c05f945"
   end
 
   resource "wcwidth" do
-    url "https://files.pythonhosted.org/packages/34/74/c6428f875774288bec1396f5bfcbc2d925700a4dad61727fd5f2b12f249d/wcwidth-0.8.2.tar.gz"
-    sha256 "91fbef97204b96a3d4d421609b80340b760cf33e26da123ff243d76b1fda8dda"
+    url "https://files.pythonhosted.org/packages/3d/7a/f98d4ada7c499565ab0c0fcef28a4e54fafa72b8228a6309803c80493c92/wcwidth-0.8.4.tar.gz"
+    sha256 "2dae09efa25253ae2874188e86d6861af3b1652aef4118cdf3f0bda288a957fb"
   end
 
   def install

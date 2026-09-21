@@ -1,12 +1,12 @@
 {
-    "version": "0.2.1",
-    "description": "Interactive fixer for broken npm / npx / pnpm / yarn commands.",
+    "version": "0.3.0",
+    "description": "Interactive fixer for mistyped CLI commands — npm, git, docker, cargo, pip and go.",
     "homepage": "https://github.com/Max-code7997/fixpm",
     "license": "MIT",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/Max-code7997/fixpm/releases/download/v0.2.1/fixpm-windows-x64.exe",
-            "hash": "35c943f430c71a3491720686dfbbf7afed1e28ff033f979c613cf8a4e45a7b0a"
+            "url": "https://github.com/Max-code7997/fixpm/releases/download/v0.3.0/fixpm-windows-x64.exe",
+            "hash": "1a9cb6608b4121b67f8665d61edb7b8a651430a3e911635b154464618e5ddb83"
         }
     },
     "bin": [

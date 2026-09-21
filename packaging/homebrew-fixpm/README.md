@@ -1,6 +1,6 @@
 # homebrew-fixpm
 
-Homebrew tap for [fixpm](https://github.com/Max-code7997/fixpm) — interactive fixer for broken npm / npx / pnpm / yarn commands.
+Homebrew tap for [fixpm](https://github.com/Max-code7997/fixpm) — interactive fixer for mistyped CLI commands: npm, git, docker, cargo, pip and go.
 
 ## Install (users)
 
