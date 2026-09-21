@@ -39,6 +39,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
+          cache: false  # no go.sum: the probe has no dependencies
 
       - name: Install
         run: |

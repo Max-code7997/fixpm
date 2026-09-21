@@ -40,7 +40,10 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version-file: go/go.mod
+          # No go.sum (the probe has no dependencies), so the cache step would
+          # only warn.
+          cache: false
 
       - name: Install
         run: |
@@ -66,3 +69,41 @@ jobs:
       - name: Parity with the Python reference
         run: go test ./...
         working-directory: go
+
+  # The release workflow builds this binary on three platforms; until now
+  # nothing ran the result, and a macOS build that aborts on startup shipped
+  # straight to the release job. Building AND running it here is the gate that
+  # would have caught it.
+  probe-binary:
+    name: Probe binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache: false
+
+      - name: Build
+        working-directory: go
+        run: go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/fixpm-probe" .
+
+      - name: Run it
+        shell: bash
+        run: |
+          set +e
+          out=$("$RUNNER_TEMP/fixpm-probe" --dry-run "docker container lss" 2>&1)
+          rc=$?
+          echo "exit=$rc"
+          echo "$out"
+          if [ "$rc" -ne 0 ] || ! printf '%s' "$out" | grep -q "docker container ls"; then
+            # Annotations stay readable without repository access, unlike step
+            # logs; a bare "exit code 134" costs a whole debugging round-trip.
+            echo "::error title=probe unusable on ${{ matrix.os }}::exit=$rc uname=$(uname -sm) go=$(go version | cut -d' ' -f3) output=${out}"
+            exit 1
+          fi
