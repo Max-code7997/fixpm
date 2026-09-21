@@ -1,12 +1,17 @@
 # fixpm
 
-<!-- TODO(badges): CI status, PyPI version, Python versions, license -->
+[![CI](https://github.com/Max-code7997/fixpm/actions/workflows/ci.yml/badge.svg)](https://github.com/Max-code7997/fixpm/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/fixpm.svg)](https://pypi.org/project/fixpm/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fixpm.svg)](https://pypi.org/project/fixpm/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Max-code7997/fixpm/blob/main/LICENSE)
 
 **Interactive command fixer for mistyped CLIs — npm, git, docker, cargo, pip, go.**
 
 You typed `npm isntall react`. Your terminal yelled at you. `fixpm` knows what you meant — pick the fix with arrow keys, press Enter, done.
 
-![fixpm demo](docs/assets/demo.gif)
+<!-- Absolute URL on purpose: PyPI renders this long description outside the
+     repository, so a relative path shows up there as a broken image. -->
+![fixpm demo](https://raw.githubusercontent.com/Max-code7997/fixpm/main/docs/assets/demo.gif)
 
 ## Tested on
 

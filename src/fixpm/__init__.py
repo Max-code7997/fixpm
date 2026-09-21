@@ -1,3 +1,3 @@
-"""fixpm — interactive command fixer for npm / npx / pnpm / yarn."""
+"""fixpm — interactive command fixer for npm, git, docker, cargo, pip and go."""
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"

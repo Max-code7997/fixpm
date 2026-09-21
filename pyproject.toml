@@ -5,23 +5,28 @@ build-backend = "hatchling.build"
 [project]
 name = "fixpm"
 dynamic = ["version"]
-description = "Interactive fixer for broken npm / npx / pnpm / yarn commands."
+description = "Interactive fixer for mistyped CLI commands — npm, git, docker, cargo, pip and go"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "fixpm contributors" }]
 requires-python = ">=3.10"
-keywords = ["npm", "npx", "pnpm", "yarn", "cli", "typo", "did-you-mean"]
+keywords = [
+    "npm", "npx", "pnpm", "yarn", "git", "docker", "cargo", "pip", "go",
+    "cli", "typo", "did-you-mean", "shell-hook",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development",
     "Topic :: Utilities",
 ]
