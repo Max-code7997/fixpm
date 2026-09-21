@@ -170,7 +170,9 @@ path: every release carries `fixpm-probe-<platform>-<arch>` (the same
 it alongside `fixpm`, and `scripts/install.sh` fetches it when available.
 
 ```bash
-# only needed if you want to build it yourself
+# only needed if you want to build it yourself (needs Go >= 1.26: older
+# toolchains strip LC_UUID out of the Mach-O, and macOS 15+ then refuses to
+# load the binary. CI runs the built probe on every platform before release.)
 cd go && go build -trimpath -ldflags="-s -w" -o ../fixpm-probe .
 ```
 
