@@ -114,15 +114,27 @@ jobs:
       - name: Both binaries must run
         shell: bash
         run: |
-          version=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/fixpm/__init__.py)
-          out="$(fixpm --version 2>&1) | $(fixpm-probe --version 2>&1) | $(fixpm --dry-run 'docker container lss' 2>&1) | $(fixpm-probe --dry-run 'go mod tidyy' 2>&1)"
-          printf '%s\n' "$out"
-          for want in "fixpm $version" "fixpm-probe $version" "docker container ls" "go mod tidy"; do
-            if ! printf '%s' "$out" | grep -qF "$want"; then
-              echo "::error title=installed formula is broken::missing [$want]; got [$out]"
-              exit 1
+          version=$(sed -n 's/^version "\(.*\)"/\1/p' packaging/homebrew-fixpm/Formula/fixpm.rb)
+          fail=0
+          check() {  # <label> <expected substring> <command...>
+            label="$1"; want="$2"; shift 2
+            out=$("$@" 2>&1); rc=$?
+            printf '%-12s exit=%s  %s\n' "$label" "$rc" "$out"
+            if [ "$rc" -ne 0 ] || ! printf '%s' "$out" | grep -qF "$want"; then
+              # One short annotation per failure: a single long message gets
+              # clipped on the run page, which is the only log a non-owner sees.
+              echo "::error title=$label does not work on macOS::exit=$rc want=[$want] got=[$(printf '%s' "$out" | head -c 180 | tr '\n' '|')]"
+              fail=1
             fi
-          done
+          }
+          check fixpm       "fixpm $version"       fixpm --version
+          check probe       "fixpm-probe $version" fixpm-probe --version
+          check fixpm-fix   "docker container ls"  fixpm --dry-run "docker container lss"
+          check probe-fix   "go mod tidy"          fixpm-probe --dry-run "go mod tidyy"
+          if [ "$fail" -ne 0 ]; then
+            echo "::warning title=macos diagnostics::$(sw_vers -productVersion) $(file "$(command -v fixpm)" | cut -d: -f2- | tr -d '\r') codesign=[$(codesign -dvv "$(command -v fixpm)" 2>&1 | tr '\n' ' ')]"
+            exit 1
+          fi
 
   # The release workflow builds this binary on three platforms; until now
   # nothing ran the result, and a macOS build that aborts on startup shipped
